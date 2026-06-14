@@ -1,0 +1,196 @@
+/* AirBoard v3 — global stylesheet */
+
+QMainWindow, QWidget#CentralRoot {
+    background-color: #0B1220;
+    color: #F9FAFB;
+}
+
+QLabel {
+    color: #F9FAFB;
+    background: transparent;
+}
+
+QFrame#DashboardCard {
+    background-color: #111827;
+    border: 1px solid #1F2937;
+    border-radius: 8px;
+}
+
+QPushButton#ToolButton {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: #9CA3AF;
+    text-align: left;
+    padding: 10px 12px 10px 16px;
+    font-size: 14px;
+}
+
+QPushButton#ToolButton:hover {
+    background-color: #1F2937;
+    border: 1px solid #374151;
+    color: #F9FAFB;
+}
+
+QPushButton#ToolButton:checked {
+    background-color: #1E3A5F;
+    border: 1px solid #2563EB;
+    color: #F9FAFB;
+    border-left: 4px solid #2563EB;
+}
+
+QPushButton#ToolButton:pressed {
+    background-color: #2563EB;
+}
+
+QWidget#TopToolbar {
+    background-color: #111827;
+    border-bottom: 1px solid #1F2937;
+}
+
+QWidget#BottomStatusBar {
+    background-color: #111827;
+    border-top: 1px solid #1F2937;
+}
+
+QScrollArea#LeftSidebar {
+    background-color: #111827;
+    border-right: 1px solid #1F2937;
+}
+
+QScrollArea#RightSidebar {
+    background-color: #111827;
+    border-left: 1px solid #1F2937;
+}
+
+QWidget#SidebarPanel {
+    background-color: #111827;
+}
+
+QLabel#StatusPill {
+    background-color: #1F2937;
+    border: 1px solid #374151;
+    border-radius: 16px;
+    padding: 4px 12px;
+    color: #F9FAFB;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+QPushButton#ColorChip {
+    border-radius: 20px;
+    min-width: 32px;
+    max-width: 32px;
+    min-height: 32px;
+    max-height: 32px;
+    border: 2px solid #374151;
+}
+
+QPushButton#ColorChip:hover {
+    border: 2px solid #9CA3AF;
+}
+
+QPushButton#ColorChip:checked {
+    min-width: 38px;
+    max-width: 38px;
+    min-height: 38px;
+    max-height: 38px;
+    border: 3px solid #2563EB;
+    margin: -3px;
+}
+
+QPushButton#ToolbarButton {
+    background-color: #111827;
+    border: 1px solid #1F2937;
+    border-radius: 8px;
+    color: #F9FAFB;
+    padding: 6px 14px;
+    font-size: 13px;
+}
+
+QPushButton#ToolbarButton:hover {
+    background-color: #1F2937;
+}
+
+QPushButton#IconButton {
+    background-color: #111827;
+    border: 1px solid #1F2937;
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: #F9FAFB;
+    font-size: 13px;
+}
+
+QPushButton#IconButton:hover {
+    background-color: #1F2937;
+}
+
+QFrame#WebcamPanel {
+    background-color: #0B1220;
+    border: 1px solid #1F2937;
+    border-radius: 12px;
+}
+
+QScrollArea {
+    border: none;
+    background: transparent;
+}
+
+QScrollBar:vertical {
+    background: #0B1220;
+    width: 8px;
+}
+
+QScrollBar::handle:vertical {
+    background: #374151;
+    border-radius: 4px;
+}
+
+QLabel#SectionHeader {
+    color: #9CA3AF;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+QLabel#Keycap {
+    background-color: #374151;
+    border: 1px solid #1F2937;
+    border-radius: 4px;
+    padding: 2px 8px;
+    color: #F9FAFB;
+    font-size: 12px;
+}
+
+QLabel#BottomBar {
+    color: #9CA3AF;
+    font-size: 12px;
+}
+
+QFrame#HandCard {
+    background-color: #111827;
+    border: 1px solid #1F2937;
+    border-radius: 8px;
+}
+
+QFrame#ToolbarCard {
+    background-color: #111827;
+    border: 1px solid #1F2937;
+    border-radius: 8px;
+}
+
+QPushButton#BrushButton {
+    background-color: #1F2937;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    color: #F9FAFB;
+    min-width: 28px;
+    max-width: 28px;
+    min-height: 28px;
+    max-height: 28px;
+    font-size: 14px;
+    padding: 0;
+}
+
+QPushButton#BrushButton:hover {
+    background-color: #374151;
+}

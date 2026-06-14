@@ -1,0 +1,13 @@
+# Ignore virtual environment
+venv/
+
+# MediaPipe model (download via README instructions)
+models/*.task
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# IDE
+.idea/
+.vscode/
