@@ -8,6 +8,7 @@ ARROW = "arrow"
 TEXT = "text"
 ERASER = "eraser"
 CLEAR = "clear"
+SELECT = "select"
 
 LABELS = {
     FREEHAND: "Freehand",
@@ -18,6 +19,7 @@ LABELS = {
     TEXT: "Text",
     ERASER: "Eraser",
     CLEAR: "Clear All",
+    SELECT: "Pointer",
 }
 
 KEY_MAP = {
@@ -26,9 +28,13 @@ KEY_MAP = {
     ord("3"): RECTANGLE,
     ord("4"): CIRCLE,
     ord("5"): ARROW,
+    ord("b"): FREEHAND,
     ord("t"): TEXT,
     ord("e"): ERASER,
+    ord("v"): SELECT,
 }
+
+MANIPULATION_TOOL = SELECT
 
 SHAPE_TOOLS = {LINE, RECTANGLE, CIRCLE, ARROW}
 DRAW_TOOLS = {FREEHAND, LINE, RECTANGLE, CIRCLE, ARROW, TEXT}

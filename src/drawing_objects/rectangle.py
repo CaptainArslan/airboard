@@ -16,9 +16,11 @@ class Rectangle(DrawableObject):
 
     def render(self, canvas: np.ndarray) -> None:
         if self.visible:
-            cv2.rectangle(canvas, self.start_point, self.end_point, self.color, self.thickness)
+            a = self.map_point(*self.start_point)
+            b = self.map_point(*self.end_point)
+            cv2.rectangle(canvas, a, b, self.color, self.thickness)
 
-    def bounding_box(self) -> tuple[int, int, int, int]:
+    def _local_bounding_box(self) -> tuple[int, int, int, int]:
         pad = self.thickness + 4
         xs = [self.start_point[0], self.end_point[0]]
         ys = [self.start_point[1], self.end_point[1]]

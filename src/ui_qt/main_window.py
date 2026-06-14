@@ -143,6 +143,7 @@ class MainWindow(QMainWindow):
         frame_bgr: np.ndarray,
         text_draft: str = "",
         text_input_active: bool = False,
+        selection_props: dict | None = None,
     ):
         from src.drawing import tools as T
         tool_label = T.LABELS.get(current_tool, current_tool)
@@ -166,6 +167,7 @@ class MainWindow(QMainWindow):
         self.bottom_bar.update_tool_info(current_tool, brush_size, eraser_size)
         self.right_panel.left_card.update_state(left_mode, color_name)
         self.right_panel.right_card.update_state(right_mode, color_name)
+        self.right_panel.properties_card.update_properties(selection_props)
         self.camera_view.set_frame(frame_bgr)
 
         if text_input_active and text_draft and self._text_input.isVisible():

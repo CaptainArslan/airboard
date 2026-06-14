@@ -25,6 +25,9 @@ class CanvasModel:
         self._history_index = 0
         self._erase_batch_active = False
         self._erase_batch_modified = False
+        self._manip_batch_active = False
+        self._manip_batch_modified = False
+        self._next_z = 0
 
     @property
     def objects(self) -> list[DrawableObject]:
@@ -84,7 +87,60 @@ class CanvasModel:
         self._history_index += 1
 
     def add_object(self, obj: DrawableObject) -> None:
+        obj.z_index = self._next_z
+        self._next_z += 1
         self._objects.append(obj)
+        self._push_history()
+
+    def begin_manipulation_batch(self) -> None:
+        self._manip_batch_active = True
+        self._manip_batch_modified = False
+
+    def end_manipulation_batch(self) -> None:
+        if self._manip_batch_active and self._manip_batch_modified:
+            self._push_history()
+        self._manip_batch_active = False
+        self._manip_batch_modified = False
+
+    def commit_manipulation(self) -> None:
+        self._push_history()
+
+    def mark_manipulation_changed(self) -> None:
+        self._mark_manipulated()
+
+    def _mark_manipulated(self) -> None:
+        if self._manip_batch_active:
+            self._manip_batch_modified = True
+        else:
+            self._push_history()
+
+    def delete_objects(self, ids: set[str]) -> None:
+        before = len(self._objects)
+        self._objects = [o for o in self._objects if o.id not in ids]
+        if len(self._objects) != before:
+            self._push_history()
+
+    def duplicate_objects(self, ids: set[str]) -> list[DrawableObject]:
+        clones = []
+        for obj in self._objects:
+            if obj.id in ids:
+                clone = obj.duplicate()
+                clone.z_index = self._next_z
+                self._next_z += 1
+                clones.append(clone)
+        if clones:
+            self._objects.extend(clones)
+            self._push_history()
+        return clones
+
+    def layer_selected(self, ids: set[str], delta: int) -> None:
+        if not ids:
+            return
+        for obj in self._objects:
+            if obj.id in ids:
+                obj.z_index += delta
+                obj.touch()
+        self._objects.sort(key=lambda o: o.z_index)
         self._push_history()
 
     def remove_object(self, obj_id: str) -> bool:

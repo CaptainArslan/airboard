@@ -27,6 +27,7 @@ _TOOL_MAP = {
     tools.ARROW: ToolMode.ARROW,
     tools.TEXT: ToolMode.TEXT,
     tools.ERASER: ToolMode.ERASER,
+    tools.SELECT: ToolMode.SELECT,
 }
 
 
@@ -37,11 +38,20 @@ class HelpDialog(QDialog):
         self.setMinimumWidth(520)
         layout = QVBoxLayout(self)
         text = QLabel(
-            "Gestures\n"
-            "  Index finger — Draw\n"
-            "  Index + middle — Pointer\n"
-            "  Open palm — Eraser\n\n"
-            "Tools: 1 Freehand  2 Line  3 Rectangle  4 Circle  5 Arrow  T Text  E Eraser  X Clear\n\n"
+            "AirBoard in one line:\n"
+            "  Draw with one finger · Select with pinch · Control with two hands · Delete via trash\n\n"
+            "Drawing Mode (B / 1–5)\n"
+            "  Index finger up — draw on canvas\n\n"
+            "Selection Mode (V)\n"
+            "  Pinch once — select object (Point → Pinch → Release)\n"
+            "  Pinch + hold — move object (Pinch → Hold → Move → Release)\n"
+            "  Two-hand pinch — scale, stretch, rotate (both hands must pinching)\n"
+            "  Drag to trash + release — delete (not on hover alone)\n\n"
+            "Eraser Mode (E only)\n"
+            "  Open palm or index finger — erase\n"
+            "  Open palm alone never erases outside Eraser tool\n\n"
+            "Tools: V Pointer  B/1 Pen  2–5 Shapes  T Text  E Eraser  X Clear\n\n"
+            "Objects: Delete  Ctrl+D Duplicate  Ctrl+G Group  Ctrl+Shift+G Ungroup  PgUp/PgDn Layer\n"
             "Edit: Z / Ctrl+Z Undo   Y / Ctrl+Y Redo   S Save PNG\n"
             "Brush: + / -   Eraser size: [ / ]   (also +/- when eraser tool active)\n\n"
             "Window: F Fullscreen  H Help  Q / Esc Quit\n\n"
@@ -99,7 +109,15 @@ class AirBoardApplication:
         QShortcut(QKeySequence("["), w, lambda: self._on_eraser_delta(-5))
         QShortcut(QKeySequence("]"), w, lambda: self._on_eraser_delta(5))
         QShortcut(QKeySequence("E"), w, lambda: self._on_tool(tools.ERASER))
+        QShortcut(QKeySequence("V"), w, lambda: self._on_tool(tools.SELECT))
+        QShortcut(QKeySequence("B"), w, lambda: self._on_tool(tools.FREEHAND))
         QShortcut(QKeySequence("T"), w, lambda: self._on_tool(tools.TEXT))
+        QShortcut(QKeySequence(Qt.Key.Key_Delete), w, self._on_delete_selected)
+        QShortcut(QKeySequence("Ctrl+D"), w, self._on_duplicate_selected)
+        QShortcut(QKeySequence("Ctrl+G"), w, self._on_group_selected)
+        QShortcut(QKeySequence("Ctrl+Shift+G"), w, self._on_ungroup_selected)
+        QShortcut(QKeySequence(Qt.Key.Key_PageUp), w, lambda: self._on_layer(1))
+        QShortcut(QKeySequence(Qt.Key.Key_PageDown), w, lambda: self._on_layer(-1))
         for key, tool in tools.KEY_MAP.items():
             QShortcut(QKeySequence(chr(key)), w, lambda t=tool: self._on_tool(t))
 
@@ -115,6 +133,7 @@ class AirBoardApplication:
             return
         hm = self._processor.hand_manager
         hm.set_tool(tool_id)
+        self._processor.manipulation.set_tool(tool_id)
         if tool_id in _TOOL_MAP:
             self._state.current_tool = _TOOL_MAP[tool_id]
         self._window.set_tool_checked(tool_id)
@@ -160,6 +179,25 @@ class AirBoardApplication:
 
     def _on_redo(self):
         self._processor.hand_manager.redo()
+
+    def _on_delete_selected(self):
+        self._processor.manipulation.delete_selected()
+
+    def _on_duplicate_selected(self):
+        self._processor.manipulation.duplicate_selected()
+
+    def _on_group_selected(self):
+        self._processor.manipulation.group_selected()
+
+    def _on_ungroup_selected(self):
+        self._processor.manipulation.ungroup_selected()
+
+    def _on_layer(self, delta: int):
+        mc = self._processor.manipulation
+        if delta > 0:
+            mc.layer_forward()
+        else:
+            mc.layer_backward()
 
     def _on_save(self):
         path = self._processor.export_png(str(EXPORTS_DIR))
@@ -211,6 +249,7 @@ class AirBoardApplication:
             result.frame,
             self._state.text_draft,
             self._state.text_input_active,
+            result.selection_props,
         )
 
     def run(self) -> int:

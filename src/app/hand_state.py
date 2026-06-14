@@ -19,6 +19,7 @@ class ToolMode(str, Enum):
     TEXT = "text"
     ERASER = "eraser"
     CLEAR = "clear"
+    SELECT = "select"
 
 
 class HandMode(str, Enum):

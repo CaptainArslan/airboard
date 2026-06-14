@@ -121,6 +121,70 @@ class ToolPill(QFrame):
         self._label.setText(text)
 
 
+class ObjectPropertiesCard(QFrame):
+    """Read-only selection properties for Iron Man mode."""
+
+    def __init__(self):
+        super().__init__()
+        self.setObjectName("HandCard")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(6)
+        title = QLabel("OBJECT PROPERTIES")
+        title.setFont(app_font(13, QFont.Weight.Medium))
+        layout.addWidget(title)
+        self._rows: dict[str, QLabel] = {}
+        for key, label in (
+            ("type", "Type"),
+            ("count", "Selected"),
+            ("x", "X"),
+            ("y", "Y"),
+            ("width", "Width"),
+            ("height", "Height"),
+            ("rotation", "Rotation"),
+            ("scale_x", "Scale X"),
+            ("scale_y", "Scale Y"),
+            ("thickness", "Stroke"),
+            ("z_index", "Layer"),
+            ("group_id", "Group"),
+        ):
+            row = QHBoxLayout()
+            cap = QLabel(label)
+            cap.setFont(app_font(12))
+            cap.setStyleSheet("color: #9CA3AF;")
+            cap.setFixedWidth(72)
+            val = QLabel("—")
+            val.setFont(app_font(12, QFont.Weight.Medium))
+            row.addWidget(cap)
+            row.addWidget(val)
+            layout.addLayout(row)
+            self._rows[key] = val
+        self._empty = QLabel("Pinch an object to inspect.")
+        self._empty.setFont(app_font(12))
+        self._empty.setStyleSheet("color: #6B7280;")
+        self._empty.setWordWrap(True)
+        layout.addWidget(self._empty)
+
+    def update_properties(self, props: dict | None):
+        if not props:
+            for val in self._rows.values():
+                val.setText("—")
+            self._empty.show()
+            return
+        self._empty.hide()
+        for key, val in self._rows.items():
+            if key not in props:
+                val.setText("—")
+                continue
+            raw = props[key]
+            if key == "rotation":
+                val.setText(f"{raw}°")
+            elif key == "color" and isinstance(raw, tuple):
+                val.setText(f"RGB({raw[2]},{raw[1]},{raw[0]})")
+            else:
+                val.setText(str(raw))
+
+
 class HandStatusCard(QFrame):
     def __init__(self, hand_label: str):
         super().__init__()
@@ -150,17 +214,17 @@ class HandStatusCard(QFrame):
     @staticmethod
     def _gesture_text(mode: str) -> str:
         m = mode.upper()
-        return {"DRAW": "Index finger", "POINTER": "Index + middle", "ERASER": "Open palm"}.get(m, "—")
+        return {"DRAW": "Index finger", "POINTER": "Index + middle", "ERASER": "Erasing", "OPEN_PALM": "Open palm (neutral)", "PINCH": "Thumb + index pinch"}.get(m, "—")
 
     @staticmethod
     def _status_color(mode: str) -> str:
         m = mode.upper()
-        return {"DRAW": "#2563EB", "POINTER": "#F59E0B", "ERASER": "#EF4444"}.get(m, "#22C55E")
+        return {"DRAW": "#2563EB", "POINTER": "#F59E0B", "ERASER": "#EF4444", "OPEN_PALM": "#6B7280", "PINCH": "#2563EB"}.get(m, "#22C55E")
 
     @staticmethod
     def _status_text(mode: str) -> str:
         m = mode.upper()
-        return {"DRAW": "Drawing", "POINTER": "Pointing", "ERASER": "Erasing"}.get(m, "Idle")
+        return {"DRAW": "Drawing", "POINTER": "Pointing", "ERASER": "Erasing", "OPEN_PALM": "Idle", "PINCH": "Manipulating"}.get(m, "Idle")
 
     def update_state(self, mode: str, color_name: str):
         self._status.setText(self._status_text(mode))
@@ -194,6 +258,7 @@ class StatusPill(QLabel):
 
 
 TOOL_ITEMS = [
+    (tools.SELECT, "Pointer", "V", "◻"),
     (tools.FREEHAND, "Freehand", "1", "✏"),
     (tools.LINE, "Line", "2", "╱"),
     (tools.RECTANGLE, "Rectangle", "3", "▭"),
@@ -205,8 +270,10 @@ TOOL_ITEMS = [
 ]
 
 SHORTCUTS = [
-    ("1", "Freehand"), ("2", "Line"), ("3", "Rectangle"), ("4", "Circle"),
+    ("V", "Pointer / manipulate"), ("B", "Pen (freehand)"), ("1", "Freehand"), ("2", "Line"), ("3", "Rectangle"), ("4", "Circle"),
     ("5", "Arrow"), ("T", "Text"), ("E", "Eraser"), ("X", "Clear"),
+    ("Del", "Delete selection"), ("Ctrl+D", "Duplicate"), ("Ctrl+G", "Group"),
+    ("PgUp/Dn", "Layer forward/back"),
     ("Z", "Undo"), ("Y", "Redo"), ("S", "Save PNG"),
     ("F", "Fullscreen"), ("H", "Help"), ("Q", "Quit"),
 ]

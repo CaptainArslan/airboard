@@ -18,14 +18,15 @@ class Text(DrawableObject):
     def render(self, canvas: np.ndarray) -> None:
         if not self.visible or not self.content:
             return
-        scale = max(0.4, self.font_size / 32.0)
-        thickness = max(1, self.font_size // 12)
+        pos = self.map_point(*self.position)
+        scale = max(0.4, self.font_size / 32.0) * self.scale_x
+        thickness = max(1, int(self.font_size // 12))
         cv2.putText(
-            canvas, self.content, self.position,
+            canvas, self.content, pos,
             cv2.FONT_HERSHEY_SIMPLEX, scale, self.color, thickness, cv2.LINE_AA,
         )
 
-    def bounding_box(self) -> tuple[int, int, int, int]:
+    def _local_bounding_box(self) -> tuple[int, int, int, int]:
         if not self.content:
             return (self.position[0], self.position[1], self.position[0], self.position[1])
         scale = max(0.4, self.font_size / 32.0)

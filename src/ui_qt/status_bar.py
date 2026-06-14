@@ -13,8 +13,8 @@ class BottomStatusBar(QWidget):
         layout.setContentsMargins(16, 0, 16, 0)
 
         self._hints = QLabel(
-            "Draw: index finger  |  Pointer: two fingers  |  "
-            "Erase: open palm  |  [ ] eraser size  |  Q/Esc: quit  |  F: fullscreen"
+            "B: Draw  |  V: Select  |  E: Eraser (tool only)  |  "
+            "Pinch: select  |  Pinch+hold: move  |  Q/Esc: quit"
         )
         self._hints.setObjectName("BottomBar")
         layout.addWidget(self._hints)
@@ -31,7 +31,14 @@ class BottomStatusBar(QWidget):
 
     def update_tool_info(self, current_tool: str, brush_size: int, eraser_size: int):
         label = tools.LABELS.get(current_tool, current_tool)
-        self._tool_label.setText(f"Tool: {label}")
+        mode_hint = ""
+        if current_tool == tools.SELECT:
+            mode_hint = " — Selection Mode"
+        elif current_tool == tools.ERASER:
+            mode_hint = " — Eraser Mode"
+        elif current_tool in tools.DRAW_TOOLS:
+            mode_hint = " — Drawing Mode"
+        self._tool_label.setText(f"Tool: {label}{mode_hint}")
         if current_tool == tools.ERASER:
             self._size_label.setText(f"Size: {eraser_size}px")
         else:

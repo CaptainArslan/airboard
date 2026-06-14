@@ -8,6 +8,9 @@ models/*.task
 __pycache__/
 *.py[cod]
 
+# Local exports (screenshots)
+exports/*.png
+
 # IDE
 .idea/
 .vscode/

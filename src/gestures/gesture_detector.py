@@ -48,7 +48,9 @@ class GestureMode:
 
     FIST = "FIST"
 
-    ERASER = "ERASER"
+    OPEN_PALM = "OPEN_PALM"
+
+    PINCH = "PINCH"
 
 
 
@@ -71,6 +73,12 @@ class HandGestureState:
     fingertip: tuple[int, int] | None
 
     palm_center: tuple[int, int] | None
+
+    pinch_center: tuple[int, int] | None = None
+
+    pinch_distance: float = 0.0
+
+    thumb_tip: tuple[int, int] | None = None
 
 
 
@@ -152,7 +160,12 @@ class GestureDetector:
 
 
 
-    def _classify_mode(self, fingers):
+    def _pinch_distance(self, hand: TrackedHand) -> float:
+        tx, ty = hand.pixel_coords[THUMB_TIP]
+        ix, iy = hand.pixel_coords[INDEX_TIP]
+        return ((tx - ix) ** 2 + (ty - iy) ** 2) ** 0.5
+
+    def _classify_mode(self, fingers, hand: TrackedHand):
 
         if not any(fingers.values()):
 
@@ -162,7 +175,15 @@ class GestureDetector:
 
         if self.detect_open_palm(fingers):
 
-            return GestureMode.ERASER
+            return GestureMode.OPEN_PALM
+
+
+
+        if fingers["thumb"] and fingers["index"] and not fingers["middle"]:
+
+            if self._pinch_distance(hand) < settings.PINCH_THRESHOLD:
+
+                return GestureMode.PINCH
 
 
 
@@ -242,10 +263,6 @@ class GestureDetector:
 
         tip_x, tip_y = hand.pixel_coords[INDEX_TIP]
 
-        smoothed_tip = self._smooth_point(self._smoothed_tips, key, tip_x, tip_y)
-
-
-
         palm_raw = self.get_palm_center(hand)
 
         smoothed_palm = self._smooth_point(
@@ -258,7 +275,21 @@ class GestureDetector:
 
         fingers = self._get_finger_states(hand.landmarks, handedness)
 
-        mode = self._classify_mode(fingers)
+        mode = self._classify_mode(fingers, hand)
+
+        thumb = hand.pixel_coords[THUMB_TIP]
+        pinch_center = None
+        pinch_distance = 0.0
+        if mode == GestureMode.PINCH:
+            ix, iy = hand.pixel_coords[INDEX_TIP]
+            tx, ty = thumb
+            pinch_center = ((tx + ix) // 2, (ty + iy) // 2)
+            pinch_distance = self._pinch_distance(hand)
+            smoothed_tip = self._smooth_point(
+                self._smoothed_tips, key + "_pinch", pinch_center[0], pinch_center[1],
+            )
+        else:
+            smoothed_tip = self._smooth_point(self._smoothed_tips, key, tip_x, tip_y)
 
 
 
@@ -272,7 +303,13 @@ class GestureDetector:
 
             fingertip=smoothed_tip,
 
-            palm_center=smoothed_palm if mode == GestureMode.ERASER else None,
+            palm_center=smoothed_palm if mode == GestureMode.OPEN_PALM else None,
+
+            pinch_center=pinch_center,
+
+            pinch_distance=pinch_distance,
+
+            thumb_tip=thumb,
 
         )
 
@@ -309,6 +346,14 @@ class GestureDetector:
         if mode == GestureMode.FIST:
 
             return GestureMode.IDLE
+
+        if mode == GestureMode.PINCH:
+
+            return "PINCH"
+
+        if mode == GestureMode.OPEN_PALM:
+
+            return "OPEN_PALM"
 
         return mode
 

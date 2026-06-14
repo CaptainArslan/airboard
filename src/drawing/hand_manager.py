@@ -96,17 +96,15 @@ class HandDrawingManager:
         self,
         hand_states: list[HandGestureState],
     ) -> list[tuple[int, int]]:
-        """Positions where eraser preview circle should render."""
+        """Positions where eraser preview circle should render (eraser tool only)."""
+        if self.current_tool != tools.ERASER:
+            return []
         positions: list[tuple[int, int]] = []
-        if self.current_tool == tools.ERASER:
-            for state in hand_states:
-                if state.fingertip:
-                    positions.append(state.fingertip)
-                elif state.palm_center:
-                    positions.append(state.palm_center)
         for state in hand_states:
-            if state.mode == GestureMode.ERASER and state.palm_center:
+            if state.mode == GestureMode.OPEN_PALM and state.palm_center:
                 positions.append(state.palm_center)
+            elif state.fingertip:
+                positions.append(state.fingertip)
         return positions
 
     def clear_canvas(self):
@@ -236,7 +234,7 @@ class HandDrawingManager:
         hand = self._hands.get(label)
         if hand is None:
             return
-        if hand.previous_mode == GestureMode.ERASER:
+        if hand.previous_mode == GestureMode.OPEN_PALM:
             self._end_hand_erase(label)
         if hand.previous_mode == GestureMode.DRAW:
             self._on_mode_exit_draw(hand)
@@ -263,9 +261,19 @@ class HandDrawingManager:
         self._clear_shape_state(hand)
         self._last_erase_positions.append((px, py))
 
+    def _erase_position(self, state: HandGestureState) -> tuple[int, int] | None:
+        if state.mode == GestureMode.OPEN_PALM and state.palm_center:
+            return state.palm_center
+        if state.mode == GestureMode.DRAW and state.fingertip:
+            return state.fingertip
+        return None
+
     def update(self, hand_states: list[HandGestureState]) -> None:
         active_labels = set()
         self._last_erase_positions.clear()
+        tool = self.current_tool
+        can_erase = tool == tools.ERASER
+        can_draw = tool in tools.DRAW_TOOLS and tool != tools.TEXT
 
         for state in hand_states:
             label = self._hand_label(state)
@@ -278,18 +286,19 @@ class HandDrawingManager:
             if prev_mode == GestureMode.DRAW and state.mode != GestureMode.DRAW:
                 self._on_mode_exit_draw(hand)
 
-            if prev_mode == GestureMode.ERASER and state.mode != GestureMode.ERASER:
+            if prev_mode == GestureMode.OPEN_PALM and state.mode != GestureMode.OPEN_PALM:
                 self._end_hand_erase(label)
 
-            if state.mode == GestureMode.ERASER and state.palm_center is not None:
-                px, py = state.palm_center
-                self._handle_erase_gesture(hand, label, px, py)
+            if can_erase:
+                pos = self._erase_position(state)
+                if pos is not None:
+                    self._handle_erase_gesture(hand, label, pos[0], pos[1])
 
-            elif state.mode == GestureMode.DRAW and state.fingertip is not None:
-                if self.current_tool == tools.FREEHAND:
+            elif can_draw and state.mode == GestureMode.DRAW and state.fingertip is not None:
+                if tool == tools.FREEHAND:
                     self._append_stroke_point(hand, state.fingertip)
                     self._clear_shape_state(hand)
-                elif self.current_tool in tools.SHAPE_TOOLS:
+                elif tool in tools.SHAPE_TOOLS:
                     if hand.shape_start_point is None:
                         hand.shape_start_point = state.fingertip
                     hand.shape_preview_point = state.fingertip

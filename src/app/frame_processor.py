@@ -11,6 +11,9 @@ from src.config import settings
 from src.drawing import tools
 from src.drawing.eraser_preview import draw_eraser_preview
 from src.drawing.hand_manager import HandDrawingManager
+from src.manipulation.manipulation_controller import ManipulationController
+from src.manipulation.selection_manager import SelectionManager
+from src.manipulation.selection_overlay import draw_selection_help, draw_selection_overlay
 from src.drawing_objects import CanvasModel
 from src.drawing_objects.renderer import compose_frame
 from src.gestures.gesture_detector import GestureDetector, GestureMode, HandGestureState
@@ -32,6 +35,7 @@ class FrameResult:
     brush_size: int
     eraser_size: int
     current_tool: str
+    selection_props: dict | None = None
 
 
 class FrameProcessor:
@@ -44,6 +48,8 @@ class FrameProcessor:
         self._hand_manager = HandDrawingManager(self._model)
         self._hand_manager.brush_size = settings.DEFAULT_BRUSH_SIZE
         self._hand_manager.set_eraser_size(settings.DEFAULT_ERASER_SIZE)
+        self._selection = SelectionManager()
+        self._manipulation = ManipulationController(self._model, self._selection)
         self._last_camera_frame: np.ndarray | None = None
         self.last_hand_states: list[HandGestureState] = []
 
@@ -54,6 +60,10 @@ class FrameProcessor:
     @property
     def canvas_model(self) -> CanvasModel:
         return self._model
+
+    @property
+    def manipulation(self) -> ManipulationController:
+        return self._manipulation
 
     def _ensure_canvas(self, w: int, h: int):
         if self._model.width != w or self._model.height != h:
@@ -76,14 +86,10 @@ class FrameProcessor:
         current_tool: str,
     ):
         radius = hand_manager.eraser_size
-        erasing = any(
-            s.mode == GestureMode.ERASER and s.palm_center for s in hand_states
-        )
-        tool_active = current_tool == tools.ERASER
-        if not erasing and not tool_active:
+        if current_tool != tools.ERASER:
             return
         positions = hand_manager.eraser_preview_positions(hand_states)
-        if tool_active and not positions:
+        if not positions:
             h, w = frame.shape[:2]
             positions = [(w // 2, h // 2)]
         seen = set()
@@ -102,9 +108,18 @@ class FrameProcessor:
     ):
         for state in hand_states:
             mode = GestureMode.FIST if state.mode == GestureMode.FIST else state.mode
-            if mode == GestureMode.ERASER:
+            if mode == GestureMode.OPEN_PALM:
+                if state.palm_center:
+                    px, py = state.palm_center
+                    r = max(6, min(frame.shape[:2]) // 80)
+                    cv2.circle(frame, (px, py), r, (120, 120, 120), 1)
                 continue
             if not state.fingertip:
+                if mode == GestureMode.PINCH and state.pinch_center:
+                    px, py = state.pinch_center
+                    r = max(6, min(frame.shape[:2]) // 80)
+                    cv2.circle(frame, (px, py), r + 2, (37, 99, 235), 2)
+                    cv2.circle(frame, (px, py), 4, (235, 99, 37), -1)
                 continue
             fx, fy = state.fingertip
             r = max(6, min(frame.shape[:2]) // 80)
@@ -115,6 +130,10 @@ class FrameProcessor:
                 cv2.circle(frame, (fx, fy), r, brush_color, -1)
             elif mode == GestureMode.POINTER:
                 cv2.circle(frame, (fx, fy), r, (255, 255, 255), 2)
+            elif mode == GestureMode.PINCH and state.pinch_center:
+                px, py = state.pinch_center
+                cv2.circle(frame, (px, py), r + 2, (37, 99, 235), 2)
+                cv2.circle(frame, (px, py), 4, (235, 99, 37), -1)
 
     def _draw_text_draft(self, display: np.ndarray):
         if not self.app_state.text_input_active or not self.app_state.text_draft:
@@ -147,7 +166,23 @@ class FrameProcessor:
         hand_states = self._gestures.classify_hands(hands)
         self.last_hand_states = hand_states
 
-        if self.app_state.current_tool.value != tools.TEXT:
+        fh, fw = content.shape[:2]
+        current_tool = self._hand_manager.current_tool
+        self._manipulation.set_tool(current_tool)
+
+        box_rect = None
+        if current_tool == tools.SELECT:
+            box_rect, _trash_rect = self._manipulation.update(hand_states, (fw, fh))
+        else:
+            self._manipulation.trash_hover = False
+
+        if current_tool == tools.TEXT:
+            pass
+        elif current_tool == tools.SELECT:
+            pass
+        elif current_tool == tools.ERASER:
+            self._hand_manager.update(hand_states)
+        elif current_tool in tools.DRAW_TOOLS:
             self._hand_manager.update(hand_states)
 
         active_strokes, shape_previews = self._hand_manager.collect_live_drawables()
@@ -157,6 +192,18 @@ class FrameProcessor:
             active_strokes,
             shape_previews,
         )
+
+        draw_selection_overlay(
+            display,
+            self._model.objects,
+            status_hud=self._manipulation.status_hud,
+            box_rect=box_rect,
+            grabbed=self._manipulation.is_grabbed,
+            control_state=self._manipulation.control_state,
+        )
+        if self._manipulation.show_selection_help:
+            draw_selection_help(display)
+        self._manipulation.draw_trash(display)
 
         self._draw_eraser_previews(
             display, self._hand_manager, hand_states, self._hand_manager.current_tool,
@@ -171,13 +218,23 @@ class FrameProcessor:
             letterbox_h=letter_h,
             hand_states=hand_states,
             shape_previews=shape_previews,
-            left_mode=GestureDetector.display_mode(self._hand_manager.get_hand_mode("Left")),
-            right_mode=GestureDetector.display_mode(self._hand_manager.get_hand_mode("Right")),
+            left_mode=self._display_hand_mode("Left"),
+            right_mode=self._display_hand_mode("Right"),
             color_index=self._hand_manager.color_index,
             brush_size=self._hand_manager.brush_size,
             eraser_size=self._hand_manager.eraser_size,
             current_tool=self._hand_manager.current_tool,
+            selection_props=self._manipulation.primary_selected_properties(),
         )
+
+    def _display_hand_mode(self, label: str) -> str:
+        mode = self._hand_manager.get_hand_mode(label)
+        tool = self._hand_manager.current_tool
+        if tool == tools.ERASER and mode == GestureMode.OPEN_PALM:
+            return "ERASER"
+        if tool == tools.SELECT and mode == GestureMode.PINCH:
+            return "PINCH"
+        return GestureDetector.display_mode(mode)
 
     def export_png(self, exports_dir: str) -> str | None:
         if self._last_camera_frame is None:

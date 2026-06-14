@@ -16,12 +16,13 @@ class Arrow(DrawableObject):
 
     def render(self, canvas: np.ndarray) -> None:
         if self.visible:
+            a = self.map_point(*self.start_point)
+            b = self.map_point(*self.end_point)
             cv2.arrowedLine(
-                canvas, self.start_point, self.end_point,
-                self.color, self.thickness, tipLength=0.25,
+                canvas, a, b, self.color, self.thickness, tipLength=0.25,
             )
 
-    def bounding_box(self) -> tuple[int, int, int, int]:
+    def _local_bounding_box(self) -> tuple[int, int, int, int]:
         pad = self.thickness + 8
         xs = [self.start_point[0], self.end_point[0]]
         ys = [self.start_point[1], self.end_point[1]]

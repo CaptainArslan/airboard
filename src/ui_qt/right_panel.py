@@ -3,7 +3,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QScrollArea, QVBoxLayout, QWidget
 
-from src.ui_qt.widgets import HandStatusCard, SectionHeader, ShortcutRow, SHORTCUTS
+from src.ui_qt.widgets import HandStatusCard, ObjectPropertiesCard, SectionHeader, ShortcutRow, SHORTCUTS
 
 
 class RightPanel(QScrollArea):
@@ -24,6 +24,15 @@ class RightPanel(QScrollArea):
         self.right_card = HandStatusCard("Right Hand")
         layout.addWidget(self.left_card)
         layout.addWidget(self.right_card)
+
+        line2 = QFrame()
+        line2.setFrameShape(QFrame.Shape.HLine)
+        layout.addWidget(line2)
+
+        layout.addWidget(SectionHeader("Object Properties"))
+        layout.addSpacing(8)
+        self.properties_card = ObjectPropertiesCard()
+        layout.addWidget(self.properties_card)
 
         line = QFrame()
         line.setFrameShape(QFrame.Shape.HLine)

@@ -14,7 +14,7 @@ from src.drawing_objects.rectangle import Rectangle
 
 def render_objects(objects: list[DrawableObject], width: int, height: int) -> np.ndarray:
     canvas = np.zeros((height, width, 3), dtype=np.uint8)
-    for obj in objects:
+    for obj in sorted(objects, key=lambda o: o.z_index):
         if obj.visible:
             obj.render(canvas)
     return canvas
